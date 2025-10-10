@@ -1,3 +1,4 @@
+# 🏙️ UpCity
 <p align="center">
   <img src="https://i.ibb.co/RkGP9xgp/image-removebg-preview-1.png" width="300" alt="Project Logo">
 </p>
@@ -13,12 +14,13 @@
 
 ---
 ## 📚 Table of Contents
-- [About the Project](#-about-the-project)
-- [Preview / User Flow](#-preview--user-flow)
-- [Project Architecture](#-project-architecture)
-- [Documentation](#-documentation)
-- [Developers](#-developers)
-- [License](#-license)
+- [About the Project](#about-the-project)
+- [Preview / User Flow](#preview-user-flow)
+- [Demo Video](#demo-video)
+- [Project Architecture](#project-architecture)
+- [Documentation](#documentation)
+- [Developers](#developers)
+- [License](#license)
 
 ---
 
@@ -79,6 +81,17 @@ It connects **citizens, municipal services, and administrators** in one digital 
 </p>
 *Easily manage your own reports or browse all reports.*
 
+<a id="demo-video"></a>
+## 🎥 Demo Video
+
+<p align="center">
+  🎬 <a href="./demo/demo.mp4">Watch demo video for application</a>
+  🎬 <a href="./demo/demo.mp4">Watch demo video for website</a>
+  
+</p>
+
+---
+
 
 ## Documentation
 
@@ -100,3 +113,18 @@ Documentation Here
 
 <a id="license"></a>
 ## 📜 License
+
+MIT License
+
+Copyright (c) 2025 UpCity Team
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+

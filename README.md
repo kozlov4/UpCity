@@ -91,17 +91,41 @@ It connects **citizens, municipal services, and administrators** in one digital 
 </p>
 
 ---
+<a id="project-architecture"></a>
+## 🏗️ Project Architecture
+
+The project is organized as follows:
+
+UPCITY/
+- 📁 AndroidApp      # Android mobile application
+- 📁 Backend         # FastAPI server
+- 📁 Web             # React web application
+- 📁 docs            # Documentation (PDFs, diagrams)
+README.md          # Project README
 
 
-## Documentation
 
-Documentation Here
+Each part of the system can be developed and run independently.
+---
 
-## Distribute
+<a id="documentation"></a>
+## 📘 Documentation
 
-- [Service Name](Page Link)
+All supporting materials are located in the [`docs/`](./docs) folder:
+
+- [Vision and Scope](./docs/01_vision_and_scope.pdf)  
+- [Business Rules](./docs/02_business_rules.pdf)  
+- [Smart Use Case Diagram](./docs/03_smart_use_case_diagram.pdf)  
+- [Class Diagram](./docs/04_class_diagram.pdf)  
+- [Component Diagram](./docs/05_component_diagram.pdf)  
+- [CRC Cards](./docs/06_crc_cards.pdf)  
+- [Deployment Diagram](./docs/07_deployment_diagram.pdf)  
+- [Mind Map](./docs/08_mind_map.pdf)  
+- [Object Diagram](./docs/09_object_diagram.pdf)  
+- [State Chart](./docs/10_state_chart.pdf)  
 
 
+<a id="developers"></a>
 ## 👨‍💻 Developers
 
 - [Serge Kozlov](https://github.com/kozlov4) - Backend Dev, Architect

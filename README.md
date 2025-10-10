@@ -15,9 +15,11 @@
 ---
 ## 📚 Table of Contents
 - [About the Project](#about-the-project)
+- [Major Features](#major-features)
 - [Preview / User Flow](#preview-user-flow)
 - [Demo Video](#demo-video)
 - [Project Architecture](#project-architecture)
+- [Tech Stack](#tech-stack)
 - [Documentation](#documentation)
 - [Developers](#developers)
 - [License](#license)
@@ -39,6 +41,45 @@ It connects **citizens, municipal services, and administrators** in one digital 
 > for a cleaner, smarter, and safer city.
 
 ---
+
+<a id="major-features"></a>
+## ✨ Major Features
+
+**UpCity** is an integrated city management platform that connects **citizens**, **administrators**, and **municipal services** in one digital ecosystem — making urban problem-solving faster, smarter, and more transparent.
+
+---
+
+### 👥 For Citizens (Frontend / Mobile)
+
+- 📝 **Create a Report** — submit an issue (e.g., pothole, broken light, waste) with a photo, description, and geolocation.  
+- 🗺️ **Interactive City Map** — view all reports with filtering by category, status, or location.  
+- 📋 **Track Report Status** — monitor your submitted reports and receive updates (“In Progress”, “Resolved”).  
+- 🔔 **Automatic Notifications** — get alerts about report status changes or important updates.  
+- 💬 **Secure Registration & Login** — sign up via email or Google account (Facebook integration in future release).  
+- 🌟 **Premium Subscription** *(optional)* — increased report limits and prioritized processing by city services.
+
+---
+
+### 🏛️ For Administrators (Web / Backend)
+
+- 🧩 **Admin Dashboard** — full access to all reports (active and completed) with advanced sorting and filtering.  
+- 👤 **User Management** — view user profiles and block rule violators.  
+- ⚙️ **Report Editing Tools** — edit, update, or delete reports as needed.  
+- 📊 **Analytics & Statistics** — track user activity and service performance through real-time data.
+
+---
+
+### 🧰 For Municipal Services (Web)
+
+- 🪪 **Assigned Reports View** — access all reports assigned to a specific organization.  
+- 🔄 **Status Updates** — change report states (“Accepted”, “In Progress”, “Completed”, etc.).  
+- 📷 **Photo Reports** — upload visual proof of completed work.  
+- 💬 **Comment System** — communicate with users to clarify details or provide updates.
+
+---
+
+> 💡 These features form the core of **UpCity**, creating a transparent and efficient communication bridge between citizens and municipal authorities.
+
 
 <a id="preview-user-flow"></a>
 ## 🖼️ Preview / User Flow
@@ -107,6 +148,33 @@ README.md          # Project README
 
 Each part of the system can be developed and run independently.
 ---
+
+
+<a id="tech-stack"></a>
+## 🛠️ Tech Stack
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Frontend-React-61DAFB?style=for-the-badge&logo=react&logoColor=white" alt="React">
+  <img src="https://img.shields.io/badge/Styling-TailwindCSS-38B2AC?style=for-the-badge&logo=tailwindcss&logoColor=white" alt="TailwindCSS">
+  <img src="https://img.shields.io/badge/HTTP-Axios-5A29E4?style=for-the-badge&logo=axios&logoColor=white" alt="Axios">
+  <img src="https://img.shields.io/badge/Backend-FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI">
+  <img src="https://img.shields.io/badge/Language-Python%203.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
+  <img src="https://img.shields.io/badge/Database-PostgreSQL-336791?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL">
+  <img src="https://img.shields.io/badge/Mobile-Java-007396?style=for-the-badge&logo=java&logoColor=white" alt="Java">
+  <img src="https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white" alt="GitHub Actions">
+  <img src="https://img.shields.io/badge/Auth-JWT-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white" alt="JWT">
+  <img src="https://img.shields.io/badge/Maps-Google%20Maps%20API-4285F4?style=for-the-badge&logo=googlemaps&logoColor=white" alt="Google Maps API">
+</p>
+
+**Frontend:** React, TailwindCSS, Axios  
+**Backend:** FastAPI (Python 3.12)  
+**Database:** PostgreSQL  
+**Mobile:** Android (Java)  
+**Other Tools:** GitHub Actions, JWT Auth, Google Maps API
+
+---
+
+
 
 <a id="documentation"></a>
 ## 📘 Documentation

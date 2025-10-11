@@ -127,7 +127,7 @@ It connects **citizens, municipal services, and administrators** in one digital 
 
 <p align="center">
   🎬 <a href="./demo/demo.mp4">Watch demo video for application</a>
-  🎬 <a href="./demo/demo.mp4">Watch demo video for website</a>
+  🎬 <a href="https://youtu.be/uHWBdFY8Nrs">Watch demo video for website</a>
   
 </p>
 

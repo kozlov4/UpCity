@@ -126,7 +126,7 @@ It connects **citizens, municipal services, and administrators** in one digital 
 ## 🎥 Demo Video
 
 <p align="center">
-  🎬 <a href="./demo/demo.mp4">Watch demo video for application</a>
+  🎬 <a href="https://youtu.be/qZbrQ3WslWc">UpCity City Android + Web Platform Demo</a>
   🎬 <a href="https://youtu.be/uHWBdFY8Nrs">Watch demo video for website</a>
   
 </p>

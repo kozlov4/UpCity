@@ -1,0 +1,8 @@
+*.js linguist-vendored
+*.ts linguist-vendored
+*.jsx linguist-vendored
+*.tsx linguist-vendored
+*.css linguist-vendored
+*.html linguist-vendored
+*.java linguist-vendored
+*.kt linguist-vendored

@@ -1,8 +1,11 @@
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from src.core.base import Base
+
+if TYPE_CHECKING:
+    from src.modules.application.models import Application
 
 
 class UtilityCompany(Base):

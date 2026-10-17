@@ -1,6 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 from sqlalchemy import (
     DECIMAL,
@@ -13,6 +13,10 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from src.core.base import Base
+
+if TYPE_CHECKING:
+    from src.modules.users.models import User
+    from src.modules.utility_company.models import UtilityCompany
 
 
 class Application(Base):

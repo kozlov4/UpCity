@@ -1,12 +1,12 @@
 from typing import Annotated, List, Literal, Optional
 
 from annotated_types import MaxLen, MinLen
+from core.db_helper import db_helper
 from fastapi import APIRouter, Depends, File, Form, Query, UploadFile, status
-from project.oauth2 import get_current_user
-from project.schemas.subscription_schemas import SubscriptionOut
+from oauth2 import get_current_user
 from pydantic import EmailStr
+from schemas.subscription_schemas import SubscriptionOut
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.project.core.db_helper import db_helper
 
 from . import service
 from .schemas import (

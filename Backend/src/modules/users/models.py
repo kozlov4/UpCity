@@ -1,18 +1,11 @@
+from core import Base
 from sqlalchemy import (
     Column,
+    Double,
+    ForeignKey,
     Integer,
     String,
-    ForeignKey,
-    Date,
-    Text,
-    TIMESTAMP,
-    DECIMAL,
-    CheckConstraint,
-    func,
-    Double,
-    Float,
 )
-from src.project.core.base import Base
 from sqlalchemy.orm import relationship
 
 

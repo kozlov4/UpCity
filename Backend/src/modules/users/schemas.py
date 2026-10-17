@@ -1,4 +1,5 @@
-from typing import Annotated
+from datetime import date
+from typing import Annotated, Optional
 
 from annotated_types import MaxLen, MinLen
 from pydantic import BaseModel, EmailStr
@@ -52,3 +53,19 @@ class EmailRequest(BaseModel):
 
 class PaymentRequest(BaseModel):
     paymentToken: str
+
+
+class ImageOut(BaseModel):
+    image_id: int
+    image_url: str
+
+    model_config = {"from_attributes": True}
+
+
+class SubscriptionOut(BaseModel):
+    subscription_id: Optional[int] = None
+    status: Optional[str] = None
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+
+    model_config = {"from_attributes": True}

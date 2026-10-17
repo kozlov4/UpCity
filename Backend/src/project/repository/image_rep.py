@@ -8,8 +8,8 @@ from sqlalchemy.orm import Session
 from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
 
-from project.db import database
-from project.db.models import Image
+from project.core import database
+from project.core.models import Image
 
 
 load_dotenv()

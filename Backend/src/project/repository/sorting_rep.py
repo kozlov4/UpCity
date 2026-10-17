@@ -1,6 +1,6 @@
 from sqlalchemy import  asc, desc
 
-from project.db.models import Application
+from project.core.models import Application
 
 
 def sorting_user_applications(query,sort_by_name, sort_by_date, sort_by_status):

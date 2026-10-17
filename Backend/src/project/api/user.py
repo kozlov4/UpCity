@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from annotated_types import MinLen, MaxLen
 from pydantic import EmailStr
 
-from project.db.database import get_db
+from project.core.database import get_db
 from project.schemas.user_schemas import UserRegister , UserShowAll , BlockUser, PaymentRequest, GoogleAuthRequest
 from project.schemas.subscription_schemas import SubscriptionOut
 from project.repository import user_rep

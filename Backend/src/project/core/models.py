@@ -14,7 +14,7 @@ from sqlalchemy import (
 ) 
 from sqlalchemy.orm import relationship
 
-from project.db.database import Base
+from project.core.database import Base
 
 
 class UtilityCompany(Base):

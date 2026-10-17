@@ -3,7 +3,7 @@ from typing import Literal, Optional
 from fastapi import APIRouter, Depends, status, Form, File, UploadFile, Query
 from sqlalchemy.orm import Session
 
-from project.db.database import get_db
+from project.core.database import get_db
 from project.schemas.application_schemas import ShowApp, ApplicationReview
 from project.repository import application_rep
 from project.oauth2 import get_current_user

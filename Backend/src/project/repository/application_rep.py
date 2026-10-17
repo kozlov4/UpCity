@@ -7,7 +7,7 @@ from fastapi import HTTPException , UploadFile
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, asc ,desc
 
-from project.db.models import Application, UtilityCompany, Report, User, Image
+from project.core.models import Application, UtilityCompany, Report, User, Image
 from project.repository.image_rep import upload
 from project.repository.sorting_rep import sorting_user_applications
 from project.repository.email_utils import send_email

@@ -4,7 +4,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import asc, desc
 from sqlalchemy.orm import Session
 
-from project.db.models import UtilityCompany
+from project.core.models import UtilityCompany
 from project.schemas.utility_company_schemas import AddUtilityCompany, UtilityCompanyUpdate
 from project.hashing import Hash
 

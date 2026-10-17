@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session, joinedload
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 
-from project.db.models import User, Blocking, Subscription, Image
+from project.core.models import User, Blocking, Subscription, Image
 from project.repository.image_rep import upload
 from project.schemas.user_schemas import UserRegister, BlockUser, PaymentRequest, GoogleAuthRequest
 from project.hashing import Hash

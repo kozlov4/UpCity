@@ -3,7 +3,7 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Depends, status, Query, Path
 from sqlalchemy.orm import Session
 
-from project.db.database import get_db
+from project.core.database import get_db
 from project.repository import utility_company_rep
 from project.oauth2 import get_current_user
 from project.schemas.utility_company_schemas import (

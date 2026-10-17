@@ -13,10 +13,10 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # разрешить всем источникам (для общего доступа)
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],  # разрешить все методы: GET, POST, PUT, DELETE и т.д.
-    allow_headers=["*"],  # разрешить любые заголовки
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.mount("/images", StaticFiles(directory="/var/www/myapp/uploads/images"), name="images")

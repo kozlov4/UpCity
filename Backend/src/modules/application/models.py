@@ -34,7 +34,7 @@ class Application(Base):
     )
     application_number: Mapped[int]
     user_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("app_user.user_id", ondelete="CASCADE")
+        ForeignKey("user.user_id", ondelete="CASCADE")
     )
     ut_company_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("utility_company.ut_company_id", ondelete="CASCADE")

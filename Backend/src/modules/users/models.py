@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
 
 class User(Base):
-    __tablename__ = "app_user"
+    __tablename__ = "user"
 
     user_id: Mapped[int] = mapped_column(primary_key=True, index=True)
     name: Mapped[Optional[str]] = mapped_column(String(100))
@@ -28,7 +28,7 @@ class User(Base):
     password: Mapped[Optional[str]] = mapped_column(String(255))
     rating: Mapped[float] = mapped_column(Double, default=0)
     subscription_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("app_subscription.subscription_id", ondelete="SET NULL")
+        ForeignKey("subscription.subscription_id", ondelete="SET NULL")
     )
     image_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("image.image_id", ondelete="SET NULL")
@@ -45,7 +45,7 @@ class User(Base):
 
 
 class Subscription(Base):
-    __tablename__ = "app_subscription"
+    __tablename__ = "subscription"
 
     subscription_id: Mapped[int] = mapped_column(primary_key=True, index=True)
     status: Mapped[Optional[str]] = mapped_column(String(50))
@@ -67,7 +67,7 @@ class Blocking(Base):
 
     blocking_id: Mapped[int] = mapped_column(primary_key=True, index=True)
     user_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("app_user.user_id", ondelete="CASCADE")
+        ForeignKey("user.user_id", ondelete="CASCADE")
     )
     block_date: Mapped[Optional[datetime]] = mapped_column(
         TIMESTAMP, server_default=func.now()

@@ -13,24 +13,6 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 
 
-class Subscription(Base):
-    __tablename__ = "app_subscription"
-
-    subscription_id = Column(Integer, primary_key=True, index=True)
-    status = Column(String(50))
-    start_date = Column(Date)
-    end_date = Column(Date)
-
-    users = relationship("User", back_populates="subscription")
-
-    __table_args__ = (
-        CheckConstraint(
-            "status IN ('Активна', 'Неактивна', 'Скасована')",
-            name="check_subscription_status",
-        ),
-    )
-
-
 class Image(Base):
     __tablename__ = "image"
 

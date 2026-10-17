@@ -27,3 +27,21 @@ class User(Base):
     blocking = relationship("Blocking", back_populates="user", uselist=False)
     image = relationship("Image", back_populates="users")
     applications = relationship("Application", back_populates="user")
+
+
+class Subscription(Base):
+    __tablename__ = "app_subscription"
+
+    subscription_id = Column(Integer, primary_key=True, index=True)
+    status = Column(String(50))
+    start_date = Column(Date)
+    end_date = Column(Date)
+
+    users = relationship("User", back_populates="subscription")
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('Активна', 'Неактивна', 'Скасована')",
+            name="check_subscription_status",
+        ),
+    )

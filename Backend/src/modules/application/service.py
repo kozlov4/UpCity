@@ -1,43 +1,46 @@
-from datetime import date, datetime
-from typing import  Literal
-import requests
 import asyncio
+from datetime import date, datetime
+from typing import Literal
 
-from fastapi import HTTPException , UploadFile
+import requests
+from core import Application, Image, Report, User, UtilityCompany
+from fastapi import HTTPException, UploadFile
+from repository.email_utils import send_email
+from repository.image_rep import upload
+from repository.sorting_rep import sorting_user_applications
+from sqlalchemy import desc, func
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func, asc ,desc
-
-from project.core.models import Application, UtilityCompany, Report, User, Image
-from project.repository.image_rep import upload
-from project.repository.sorting_rep import sorting_user_applications
-from project.repository.email_utils import send_email
 
 
 def get_all(
-        db:Session,
-        sort_by_name:Literal["А-Я", "Я-А"] | None, 
-        sort_by_date:Literal["За зростанням", "За спаданням"] | None,
-        sort_by_status:Literal["В роботі", "Виконано", "Не розглянута","Відхилено"] | None
-        ):
-        
-    query = db.query(Application)  
-    
-    query =  sorting_user_applications(
-            query=query,
-            sort_by_name=sort_by_name,
-            sort_by_date=sort_by_date,
-            sort_by_status=sort_by_status
-        )
-    
+    db: Session,
+    sort_by_name: Literal["А-Я", "Я-А"] | None,
+    sort_by_date: Literal["За зростанням", "За спаданням"] | None,
+    sort_by_status: (
+        Literal["В роботі", "Виконано", "Не розглянута", "Відхилено"] | None
+    ),
+):
+
+    query = db.query(Application)
+
+    query = sorting_user_applications(
+        query=query,
+        sort_by_name=sort_by_name,
+        sort_by_date=sort_by_date,
+        sort_by_status=sort_by_status,
+    )
+
     applications = query.order_by(desc(Application.application_date)).all()
     return applications
 
 
-def get_by_id(app_id:int, db:Session):
-    application = db.query(Application).options(
-        joinedload(Application.image),
-        joinedload(Application.utility_company)
-    ).filter(Application.application_id == app_id).first()
+def get_by_id(app_id: int, db: Session):
+    application = (
+        db.query(Application)
+        .options(joinedload(Application.image), joinedload(Application.utility_company))
+        .filter(Application.application_id == app_id)
+        .first()
+    )
 
     if not application:
         raise HTTPException(status_code=404, detail="Заявку не знайдено")
@@ -45,93 +48,124 @@ def get_by_id(app_id:int, db:Session):
     return application
 
 
-
 def get_all_by_user(
-    db: Session, 
+    db: Session,
     current_user: dict,
-    sort_by_name:Literal["А-Я", "Я-А"] | None, 
-    sort_by_date:Literal["За зростанням", "За спаданням"] | None,
-    sort_by_status:Literal["В роботі", "Виконано", "Не розглянута" "Відхилено"] | None
-    ):
+    sort_by_name: Literal["А-Я", "Я-А"] | None,
+    sort_by_date: Literal["За зростанням", "За спаданням"] | None,
+    sort_by_status: Literal["В роботі", "Виконано", "Не розглянута" "Відхилено"] | None,
+):
     if current_user["role"] not in ["user", "company"]:
         raise HTTPException(status_code=403, detail="Недостатньо прав")
-    
+
     user_id = current_user.get("sub")
 
     if not user_id:
-        raise HTTPException(status_code=401, detail="Не вдалося витягти ідентифікатор користувача")
+        raise HTTPException(
+            status_code=401, detail="Не вдалося витягти ідентифікатор користувача"
+        )
 
-    query = db.query(Application)  
-    
+    query = db.query(Application)
+
     if current_user["role"] == "company":
-        query =  sorting_user_applications(
+        query = sorting_user_applications(
             query=query,
             sort_by_name=sort_by_name,
             sort_by_date=sort_by_date,
-            sort_by_status=sort_by_status
+            sort_by_status=sort_by_status,
         )
-        applications = query.filter(Application.ut_company_id == user_id).order_by(desc(Application.application_date))
+        applications = query.filter(Application.ut_company_id == user_id).order_by(
+            desc(Application.application_date)
+        )
     else:  # role == "user"
-        query =  sorting_user_applications(
+        query = sorting_user_applications(
             query=query,
             sort_by_name=sort_by_name,
             sort_by_date=sort_by_date,
-            sort_by_status=sort_by_status
+            sort_by_status=sort_by_status,
         )
-        
-        applications = query.filter(Application.user_id == user_id).order_by(desc(Application.application_date))
-        
+
+        applications = query.filter(Application.user_id == user_id).order_by(
+            desc(Application.application_date)
+        )
+
     return applications
 
 
+def create_app(
+    name: str,
+    address: str,
+    description: str,
+    company_name: str,
+    photo: UploadFile,
+    db: Session,
+    current_user: dict,
+):
 
-
-def create_app(name: str, address: str, description: str, company_name: str, photo: UploadFile, db: Session, current_user: dict):
-    
     if not name or not name.strip():
         raise HTTPException(status_code=400, detail="Назва не може бути порожньою")
     if not (3 <= len(name.strip()) <= 60):
-        raise HTTPException(status_code=400, detail="Назва повинна містити від 3 до 100 символів")
-
+        raise HTTPException(
+            status_code=400, detail="Назва повинна містити від 3 до 100 символів"
+        )
 
     if not address or not address.strip():
         raise HTTPException(status_code=400, detail="Адреса не може бути порожньою")
     if not (8 <= len(address.strip()) <= 100):
-        raise HTTPException(status_code=400, detail="Адреса повинна містити від 5 до 200 символів")
-
+        raise HTTPException(
+            status_code=400, detail="Адреса повинна містити від 5 до 200 символів"
+        )
 
     if not description or not description.strip():
         raise HTTPException(status_code=400, detail="Опис не може бути порожнім")
     if not (10 <= len(description.strip()) <= 1000):
-        raise HTTPException(status_code=400, detail="Опис повинен містити від 10 до 1000 символів")
+        raise HTTPException(
+            status_code=400, detail="Опис повинен містити від 10 до 1000 символів"
+        )
 
     if current_user["role"] != "user":
         raise HTTPException(status_code=403, detail="Недостатньо прав")
-    
+
     user_id = current_user.get("sub")
     if not user_id:
-        raise HTTPException(status_code=401, detail="Не вдалося витягти ідентифікатор користувача")
+        raise HTTPException(
+            status_code=401, detail="Не вдалося витягти ідентифікатор користувача"
+        )
 
-    user = db.query(User).filter(User.user_id == user_id).outerjoin(User.subscription).first()
+    user = (
+        db.query(User)
+        .filter(User.user_id == user_id)
+        .outerjoin(User.subscription)
+        .first()
+    )
     if not user:
         raise HTTPException(status_code=404, detail="Користувач не знайдений")
 
     today = date.today()
     has_active_subscription = (
-        user.subscription is not None and
-        user.subscription.status == "Активна" and
-        user.subscription.start_date <= today <= user.subscription.end_date
+        user.subscription is not None
+        and user.subscription.status == "Активна"
+        and user.subscription.start_date <= today <= user.subscription.end_date
     )
 
-    applications_today = db.query(Application).filter(
-        Application.user_id == user_id,
-        func.date(Application.application_date) == today
-    ).count()
+    applications_today = (
+        db.query(Application)
+        .filter(
+            Application.user_id == user_id,
+            func.date(Application.application_date) == today,
+        )
+        .count()
+    )
 
     if not has_active_subscription and applications_today >= 3:
-        raise HTTPException(status_code=429, detail="Ви досягли ліміту заявок на сьогодні. Оформіть підписку для необмеженого доступу.")
+        raise HTTPException(
+            status_code=429,
+            detail="Ви досягли ліміту заявок на сьогодні. Оформіть підписку для необмеженого доступу.",
+        )
 
-    company = db.query(UtilityCompany).filter(UtilityCompany.name == company_name).first()
+    company = (
+        db.query(UtilityCompany).filter(UtilityCompany.name == company_name).first()
+    )
     if not company:
         raise HTTPException(status_code=404, detail="Компанія не знайдена")
 
@@ -139,7 +173,11 @@ def create_app(name: str, address: str, description: str, company_name: str, pho
     upload_data = upload(photo)
     image_id = upload_data["image_id"]
 
-    max_number = db.query(Application.application_number).order_by(Application.application_number.desc()).first()
+    max_number = (
+        db.query(Application.application_number)
+        .order_by(Application.application_number.desc())
+        .first()
+    )
     new_number = (max_number[0] + 1) if max_number else 1
 
     application = Application(
@@ -153,7 +191,7 @@ def create_app(name: str, address: str, description: str, company_name: str, pho
         user_id=user_id,
         ut_company_id=company.ut_company_id,
         img_id=image_id,
-        report_id=None  # не прив'язуємо репорт
+        report_id=None,  # не прив'язуємо репорт
     )
 
     db.add(application)
@@ -162,15 +200,26 @@ def create_app(name: str, address: str, description: str, company_name: str, pho
 
     return {
         "message": "Заявку успішно створено",
-        "application_id": application.application_id
+        "application_id": application.application_id,
     }
 
 
-def complete_app(app_id:int,rating:int,status:str, image: UploadFile, db:Session, current_user:dict ):
+def complete_app(
+    app_id: int,
+    rating: int,
+    status: str,
+    image: UploadFile,
+    db: Session,
+    current_user: dict,
+):
     if current_user["role"] != "company":
-        raise HTTPException(status_code=403, detail="Тільки компанія може завершити заявку")
+        raise HTTPException(
+            status_code=403, detail="Тільки компанія може завершити заявку"
+        )
 
-    application = db.query(Application).filter(Application.application_id == app_id).first()
+    application = (
+        db.query(Application).filter(Application.application_id == app_id).first()
+    )
     if not application:
         raise HTTPException(status_code=404, detail="Заявку не знайдено")
 
@@ -181,9 +230,11 @@ def complete_app(app_id:int,rating:int,status:str, image: UploadFile, db:Session
     if image and image.filename:
         uploaded_image = upload(image)
         image_id = uploaded_image["image_id"]
-        
+
     if application.report_id:
-        report = db.query(Report).filter(Report.report_id == application.report_id).first()
+        report = (
+            db.query(Report).filter(Report.report_id == application.report_id).first()
+        )
         if not report:
             raise HTTPException(status_code=500, detail="Не знайдено звіт для заявки")
 
@@ -193,10 +244,7 @@ def complete_app(app_id:int,rating:int,status:str, image: UploadFile, db:Session
         db.commit()
         db.refresh(report)
     else:
-        report = Report(
-            image_id=image_id,
-            execution_date=datetime.utcnow()
-        )
+        report = Report(image_id=image_id, execution_date=datetime.utcnow())
         db.add(report)
         db.flush()
 
@@ -213,31 +261,53 @@ def complete_app(app_id:int,rating:int,status:str, image: UploadFile, db:Session
     if rating:
         user = db.query(User).filter(User.user_id == application.user_id).first()
         if user:
-            total_ratings = db.query(func.sum(Application.user_rating)).filter(
-                Application.user_id == user.user_id,
-                Application.user_rating.isnot(None)
-            ).scalar() or 0
+            total_ratings = (
+                db.query(func.sum(Application.user_rating))
+                .filter(
+                    Application.user_id == user.user_id,
+                    Application.user_rating.isnot(None),
+                )
+                .scalar()
+                or 0
+            )
 
-            rating_count = db.query(func.count(Application.application_id)).filter(
-                Application.user_id == user.user_id,
-                Application.user_rating.isnot(None)
-            ).scalar() or 1
+            rating_count = (
+                db.query(func.count(Application.application_id))
+                .filter(
+                    Application.user_id == user.user_id,
+                    Application.user_rating.isnot(None),
+                )
+                .scalar()
+                or 1
+            )
 
             user.rating = round(total_ratings / rating_count, 2)
             db.commit()
 
     company_id = application.ut_company_id
     if company_id:
-        total_applications = db.query(func.count(Application.application_id)).filter(
-            Application.ut_company_id == company_id
-        ).scalar() or 1
+        total_applications = (
+            db.query(func.count(Application.application_id))
+            .filter(Application.ut_company_id == company_id)
+            .scalar()
+            or 1
+        )
 
-        completed_applications = db.query(func.count(Application.application_id)).filter(
-            Application.ut_company_id == company_id,
-            Application.status == "Виконано"
-        ).scalar() or 0
+        completed_applications = (
+            db.query(func.count(Application.application_id))
+            .filter(
+                Application.ut_company_id == company_id,
+                Application.status == "Виконано",
+            )
+            .scalar()
+            or 0
+        )
 
-        company = db.query(UtilityCompany).filter(UtilityCompany.ut_company_id == company_id).first()
+        company = (
+            db.query(UtilityCompany)
+            .filter(UtilityCompany.ut_company_id == company_id)
+            .first()
+        )
         if company:
             company.rating = round((completed_applications / total_applications) * 100)
             db.commit()
@@ -250,18 +320,22 @@ def complete_app(app_id:int,rating:int,status:str, image: UploadFile, db:Session
 
     report_out = None
     if report and report.image_id:
-        report_img_obj = db.query(Image).filter(Image.image_id == report.image_id).first()
+        report_img_obj = (
+            db.query(Image).filter(Image.image_id == report.image_id).first()
+        )
         report_out = {
             "report_id": report.report_id,
             "execution_date": report.execution_date,
-            "image": {"image_url": report_img_obj.image_url} if report_img_obj else None
+            "image": (
+                {"image_url": report_img_obj.image_url} if report_img_obj else None
+            ),
         }
-        
+
     if status == "Виконано":
         user = db.query(User).filter(User.user_id == application.user_id).first()
         if user and user.email:
             subject = f"✅ Виконано: {application.name or 'Ваша заявка'}"
-            
+
             content = (
                 f"Шановний(а) {user.full_name if 'full_name' in user.__dict__ and user.full_name else 'користувачу'},\n\n"
                 f"Ми раді повідомити, що ваша заявка «{application.name}» (№{application.application_id}) була успішно виконана компанією.\n\n"
@@ -279,8 +353,9 @@ def complete_app(app_id:int,rating:int,status:str, image: UploadFile, db:Session
             "status": application.status,
             "image": main_image,
             "report": report_out,
-        }
+        },
     }
+
 
 def geocode_address(address: str):
     url = "https://nominatim.openstreetmap.org/search"
@@ -290,62 +365,73 @@ def geocode_address(address: str):
     try:
         response = requests.get(url, params=params, headers=headers, timeout=10)
     except requests.RequestException as e:
-        raise HTTPException(status_code=502, detail=f"Geocoding request failed: {str(e)}")
+        raise HTTPException(
+            status_code=502, detail=f"Geocoding request failed: {str(e)}"
+        )
 
     if response.status_code != 200:
-        raise HTTPException(status_code=502, detail=f"Geocoding error: {response.status_code} - {response.text}")
+        raise HTTPException(
+            status_code=502,
+            detail=f"Geocoding error: {response.status_code} - {response.text}",
+        )
 
     try:
         data = response.json()
     except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Geocoding JSON error: {str(e)}. Response was: {response.text}")
+        raise HTTPException(
+            status_code=502,
+            detail=f"Geocoding JSON error: {str(e)}. Response was: {response.text}",
+        )
 
     if data:
         return float(data[0]["lat"]), float(data[0]["lon"])
 
     # Якщо адреса не знайдена
-    raise HTTPException(status_code=400, detail="Адресу не знайдено. Перевірте правильність написання.")
+    raise HTTPException(
+        status_code=400, detail="Адресу не знайдено. Перевірте правильність написання."
+    )
 
 
-
-def confirm_app(app_id:int, status:str, current_user:dict, db:Session):
+def confirm_app(app_id: int, status: str, current_user: dict, db: Session):
     if current_user["role"] not in ["company"]:
         raise HTTPException(status_code=403, detail="Недостатньо прав")
-    
-    application = db.query(Application).filter(Application.application_id == app_id).first()
+
+    application = (
+        db.query(Application).filter(Application.application_id == app_id).first()
+    )
     if not application:
         raise HTTPException(status_code=404, detail="Заявку не знайдено")
-    
+
     if status not in ["В роботі"]:
         raise HTTPException(status_code=400, detail="Некоректний статус")
-    
+
     application.status = status
     db.commit()
     db.refresh(application)
-    
+
     return {
         "message": "Заявку взято в роботу",
         "application": {
             "application_id": application.application_id,
             "status": application.status,
-        }
+        },
     }
-    
-    
-def destroy_app(
-    app_id: int,
-    current_user: dict,
-    db: Session
-):
+
+
+def destroy_app(app_id: int, current_user: dict, db: Session):
     if current_user["role"] != "user":
         raise HTTPException(status_code=403, detail="Недостатньо прав")
 
     try:
         user_id = int(current_user.get("sub"))
     except (TypeError, ValueError):
-        raise HTTPException(status_code=401, detail="Невірний ідентифікатор користувача")
+        raise HTTPException(
+            status_code=401, detail="Невірний ідентифікатор користувача"
+        )
 
-    application = db.query(Application).filter(Application.application_id == app_id).first()
+    application = (
+        db.query(Application).filter(Application.application_id == app_id).first()
+    )
 
     if not application:
         raise HTTPException(status_code=404, detail="Заявку не знайдено")
@@ -356,7 +442,7 @@ def destroy_app(
     if application.status in ["В роботі", "Виконано", "Відхилено"]:
         raise HTTPException(
             status_code=400,
-            detail=f"Неможливо видалити заявку зі статусом «{application.status}»"
+            detail=f"Неможливо видалити заявку зі статусом «{application.status}»",
         )
 
     db.delete(application)

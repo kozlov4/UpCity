@@ -2,9 +2,8 @@ from typing import Annotated
 
 from annotated_types import MaxLen, MinLen
 from pydantic import BaseModel, EmailStr
-
-from project.schemas.image_schemas import ImageOut
-from project.schemas.subscription_schemas import SubscriptionOut
+from schemas.image_schemas import ImageOut
+from schemas.subscription_schemas import SubscriptionOut
 
 
 class BlockUser(BaseModel):

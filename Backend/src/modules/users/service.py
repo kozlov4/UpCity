@@ -2,17 +2,17 @@ import os
 from datetime import date, timedelta
 from typing import Literal
 
+from core import Blocking, Image, Subscription, User
 from dotenv import load_dotenv
 from fastapi import HTTPException, UploadFile, status
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
-from project.core.models import Blocking, Image, Subscription, User
-from project.hashing import Hash
-from project.jwt_handler import create_access_token
-from project.repository.image_rep import upload
+from hashing import Hash
+from jwt_handler import create_access_token
+from repository.image_rep import upload
 from sqlalchemy import asc, desc
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import joinedload
 
 load_dotenv()
 

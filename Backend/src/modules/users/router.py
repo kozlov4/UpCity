@@ -3,9 +3,7 @@ from typing import Annotated, List, Literal, Optional
 from annotated_types import MaxLen, MinLen
 from core.db_helper import db_helper
 from fastapi import APIRouter, Depends, File, Form, Query, UploadFile, status
-from oauth2 import get_current_user
 from pydantic import EmailStr
-from schemas.subscription_schemas import SubscriptionOut
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from . import service
@@ -17,7 +15,7 @@ from .schemas import (
     UserShowAll,
 )
 
-router = APIRouter(tags=["Користувач🧔‍♂️"], prefix="/user")
+router = APIRouter(tags=["Користувач 🧔‍♂️"], prefix="/user")
 SessionDep = Annotated[AsyncSession, Depends(db_helper.session_dependency)]
 
 

@@ -11,6 +11,7 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.orm import relationship
+from src.core.base import Base
 
 
 class UtilityCompany(Base):

@@ -13,6 +13,7 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.orm import relationship
+from src.core.base import Base
 
 
 class Application(Base):
@@ -46,3 +47,28 @@ class Application(Base):
     utility_company = relationship("UtilityCompany", back_populates="applications")
     image = relationship("Image", back_populates="applications")
     report = relationship("Report", back_populates="applications")
+
+
+class Report(Base):
+    __tablename__ = "report"
+
+    report_id = Column(Integer, primary_key=True, index=True)
+    image_id = Column(
+        Integer, ForeignKey("image.image_id", ondelete="CASCADE"), nullable=True
+    )
+    execution_date = Column(TIMESTAMP, server_default=func.now())
+
+    image = relationship("Image", back_populates="reports")
+    applications = relationship("Application", back_populates="report")
+
+
+class Image(Base):
+    __tablename__ = "image"
+
+    image_id = Column(Integer, primary_key=True, index=True)
+    image_url = Column(Text, nullable=False)
+    image_date = Column(TIMESTAMP, server_default=func.now())
+
+    users = relationship("User", back_populates="image")
+    reports = relationship("Report", back_populates="image")
+    applications = relationship("Application", back_populates="image")

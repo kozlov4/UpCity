@@ -1,4 +1,3 @@
-from core import Base
 from sqlalchemy import (
     Column,
     Double,
@@ -7,6 +6,7 @@ from sqlalchemy import (
     String,
 )
 from sqlalchemy.orm import relationship
+from src.core.base import Base
 
 
 class User(Base):
@@ -45,3 +45,14 @@ class Subscription(Base):
             name="check_subscription_status",
         ),
     )
+
+
+class Blocking(Base):
+    __tablename__ = "blocking"
+
+    blocking_id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("app_user.user_id", ondelete="CASCADE"))
+    block_date = Column(TIMESTAMP, server_default=func.now())
+    reason = Column(Text)
+
+    user = relationship("User", back_populates="blocking")

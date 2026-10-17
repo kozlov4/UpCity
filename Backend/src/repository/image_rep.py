@@ -3,14 +3,10 @@ import shutil
 import uuid
 from datetime import datetime
 
+from core import Image, database
+from dotenv import load_dotenv
 from fastapi import HTTPException, UploadFile
 from sqlalchemy.orm import Session
-from fastapi.responses import JSONResponse
-from dotenv import load_dotenv
-
-from project.core import database
-from project.core.models import Image
-
 
 load_dotenv()
 
@@ -18,6 +14,7 @@ get_db = database.get_db
 
 UPLOAD_DIR = f"{os.getenv('UPLOAD_DIR')}"
 BASE_URL = f"{os.getenv('BASE_URL')}"
+
 
 def upload(file: UploadFile):
     if not file.filename.lower().endswith((".jpg", ".jpeg", ".png", ".gif")):
@@ -40,10 +37,5 @@ def upload(file: UploadFile):
     return {
         "message": "Изображение успешно загружено",
         "image_id": image.image_id,
-        "image_url": image.image_url
+        "image_url": image.image_url,
     }
-
-
-
-
-

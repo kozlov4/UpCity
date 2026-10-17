@@ -1,40 +1,47 @@
+from datetime import datetime
+from decimal import Decimal
+from typing import List, Optional
+
 from sqlalchemy import (
     DECIMAL,
     TIMESTAMP,
     CheckConstraint,
-    Column,
-    Date,
-    Double,
-    Float,
     ForeignKey,
-    Integer,
     String,
     Text,
     func,
 )
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from src.core.base import Base
 
 
 class Application(Base):
     __tablename__ = "application"
 
-    application_id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(255))
-    description = Column(Text)
-    address = Column(String(255))
-    longitude = Column(DECIMAL(9, 6))
-    latitude = Column(DECIMAL(9, 6))
-    status = Column(String(50), default="В роботі")
-    application_date = Column(TIMESTAMP, server_default=func.now())
-    application_number = Column(Integer, nullable=False)
-    user_id = Column(Integer, ForeignKey("app_user.user_id", ondelete="CASCADE"))
-    ut_company_id = Column(
-        Integer, ForeignKey("utility_company.ut_company_id", ondelete="CASCADE")
+    application_id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    name: Mapped[Optional[str]] = mapped_column(String(255))
+    description: Mapped[Optional[str]] = mapped_column(Text)
+    address: Mapped[Optional[str]] = mapped_column(String(255))
+    longitude: Mapped[Optional[Decimal]] = mapped_column(DECIMAL(9, 6))
+    latitude: Mapped[Optional[Decimal]] = mapped_column(DECIMAL(9, 6))
+    status: Mapped[Optional[str]] = mapped_column(String(50), default="В роботі")
+    application_date: Mapped[Optional[datetime]] = mapped_column(
+        TIMESTAMP, server_default=func.now()
     )
-    img_id = Column(Integer, ForeignKey("image.image_id", ondelete="SET NULL"))
-    report_id = Column(Integer, ForeignKey("report.report_id", ondelete="SET NULL"))
-    user_rating = Column(Float)
+    application_number: Mapped[int]
+    user_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("app_user.user_id", ondelete="CASCADE")
+    )
+    ut_company_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("utility_company.ut_company_id", ondelete="CASCADE")
+    )
+    img_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("image.image_id", ondelete="SET NULL")
+    )
+    report_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("report.report_id", ondelete="SET NULL")
+    )
+    user_rating: Mapped[Optional[float]]
 
     __table_args__ = (
         CheckConstraint(
@@ -43,32 +50,38 @@ class Application(Base):
         ),
     )
 
-    user = relationship("User", back_populates="applications")
-    utility_company = relationship("UtilityCompany", back_populates="applications")
-    image = relationship("Image", back_populates="applications")
-    report = relationship("Report", back_populates="applications")
+    user: Mapped[Optional["User"]] = relationship(back_populates="applications")
+    utility_company: Mapped[Optional["UtilityCompany"]] = relationship(
+        back_populates="applications"
+    )
+    image: Mapped[Optional["Image"]] = relationship(back_populates="applications")
+    report: Mapped[Optional["Report"]] = relationship(back_populates="applications")
 
 
 class Report(Base):
     __tablename__ = "report"
 
-    report_id = Column(Integer, primary_key=True, index=True)
-    image_id = Column(
-        Integer, ForeignKey("image.image_id", ondelete="CASCADE"), nullable=True
+    report_id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    image_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("image.image_id", ondelete="CASCADE")
     )
-    execution_date = Column(TIMESTAMP, server_default=func.now())
+    execution_date: Mapped[Optional[datetime]] = mapped_column(
+        TIMESTAMP, server_default=func.now()
+    )
 
-    image = relationship("Image", back_populates="reports")
-    applications = relationship("Application", back_populates="report")
+    image: Mapped[Optional["Image"]] = relationship(back_populates="reports")
+    applications: Mapped[List["Application"]] = relationship(back_populates="report")
 
 
 class Image(Base):
     __tablename__ = "image"
 
-    image_id = Column(Integer, primary_key=True, index=True)
-    image_url = Column(Text, nullable=False)
-    image_date = Column(TIMESTAMP, server_default=func.now())
+    image_id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    image_url: Mapped[str] = mapped_column(Text)
+    image_date: Mapped[Optional[datetime]] = mapped_column(
+        TIMESTAMP, server_default=func.now()
+    )
 
-    users = relationship("User", back_populates="image")
-    reports = relationship("Report", back_populates="image")
-    applications = relationship("Application", back_populates="image")
+    users: Mapped[List["User"]] = relationship(back_populates="image")
+    reports: Mapped[List["Report"]] = relationship(back_populates="image")
+    applications: Mapped[List["Application"]] = relationship(back_populates="image")

@@ -1,28 +1,21 @@
-from core import Base
-from sqlalchemy import (
-    TIMESTAMP,
-    CheckConstraint,
-    Column,
-    Date,
-    ForeignKey,
-    Integer,
-    String,
-    Text,
-    func,
-)
-from sqlalchemy.orm import relationship
+from typing import List, Optional
+
+from sqlalchemy import String
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from src.core.base import Base
 
 
 class UtilityCompany(Base):
     __tablename__ = "utility_company"
 
-    ut_company_id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(255))
-    address = Column(String(255))
-    phone = Column(String(50))
-    email = Column(String(255), unique=True, nullable=False)
-    password = Column(String(255), nullable=False)
-    rating = Column(Integer, nullable=False, default=0)
+    ut_company_id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    name: Mapped[Optional[str]] = mapped_column(String(255))
+    address: Mapped[Optional[str]] = mapped_column(String(255))
+    phone: Mapped[Optional[str]] = mapped_column(String(50))
+    email: Mapped[str] = mapped_column(String(255), unique=True)
+    password: Mapped[str] = mapped_column(String(255))
+    rating: Mapped[int] = mapped_column(default=0)
 
-    applications = relationship("Application", back_populates="utility_company")
+    applications: Mapped[List["Application"]] = relationship(
+        back_populates="utility_company"
+    )

@@ -1,43 +1,55 @@
+from datetime import date, datetime
+from typing import List, Optional
+
 from sqlalchemy import (
-    Column,
+    TIMESTAMP,
+    CheckConstraint,
+    Date,
     Double,
     ForeignKey,
-    Integer,
     String,
+    Text,
+    func,
 )
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from src.core.base import Base
 
 
 class User(Base):
     __tablename__ = "app_user"
 
-    user_id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(100))
-    surname = Column(String(100))
-    email = Column(String(255), unique=True, nullable=False)
-    password = Column(String(255))
-    rating = Column(Double, nullable=False, default=0)
-    subscription_id = Column(
-        Integer, ForeignKey("app_subscription.subscription_id", ondelete="SET NULL")
+    user_id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    name: Mapped[Optional[str]] = mapped_column(String(100))
+    surname: Mapped[Optional[str]] = mapped_column(String(100))
+    email: Mapped[str] = mapped_column(String(255), unique=True)
+    password: Mapped[Optional[str]] = mapped_column(String(255))
+    rating: Mapped[float] = mapped_column(Double, default=0)
+    subscription_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("app_subscription.subscription_id", ondelete="SET NULL")
     )
-    image_id = Column(Integer, ForeignKey("image.image_id", ondelete="SET NULL"))
+    image_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("image.image_id", ondelete="SET NULL")
+    )
 
-    subscription = relationship("Subscription", back_populates="users")
-    blocking = relationship("Blocking", back_populates="user", uselist=False)
-    image = relationship("Image", back_populates="users")
-    applications = relationship("Application", back_populates="user")
+    subscription: Mapped[Optional["Subscription"]] = relationship(
+        back_populates="users"
+    )
+    blocking: Mapped[Optional["Blocking"]] = relationship(
+        back_populates="user", uselist=False
+    )
+    image: Mapped[Optional["Image"]] = relationship(back_populates="users")
+    applications: Mapped[List["Application"]] = relationship(back_populates="user")
 
 
 class Subscription(Base):
     __tablename__ = "app_subscription"
 
-    subscription_id = Column(Integer, primary_key=True, index=True)
-    status = Column(String(50))
-    start_date = Column(Date)
-    end_date = Column(Date)
+    subscription_id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    status: Mapped[Optional[str]] = mapped_column(String(50))
+    start_date: Mapped[Optional[date]] = mapped_column(Date)
+    end_date: Mapped[Optional[date]] = mapped_column(Date)
 
-    users = relationship("User", back_populates="subscription")
+    users: Mapped[List["User"]] = relationship(back_populates="subscription")
 
     __table_args__ = (
         CheckConstraint(
@@ -50,9 +62,13 @@ class Subscription(Base):
 class Blocking(Base):
     __tablename__ = "blocking"
 
-    blocking_id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("app_user.user_id", ondelete="CASCADE"))
-    block_date = Column(TIMESTAMP, server_default=func.now())
-    reason = Column(Text)
+    blocking_id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    user_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("app_user.user_id", ondelete="CASCADE")
+    )
+    block_date: Mapped[Optional[datetime]] = mapped_column(
+        TIMESTAMP, server_default=func.now()
+    )
+    reason: Mapped[Optional[str]] = mapped_column(Text)
 
-    user = relationship("User", back_populates="blocking")
+    user: Mapped[Optional["User"]] = relationship(back_populates="blocking")

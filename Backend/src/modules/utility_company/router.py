@@ -4,13 +4,14 @@ from core import get_db
 from fastapi import APIRouter, Depends, Path, Query, status
 from oauth2 import get_current_user
 from repository import utility_company_rep
-from schemas.utility_company_schemas import (
+from sqlalchemy.orm import Session
+
+from .schemas import (
     AddUtilityCompany,
     ShowOneUtilityCompany,
     ShowUtilityCompany,
     UtilityCompanyUpdate,
 )
-from sqlalchemy.orm import Session
 
 router = APIRouter(tags=["Комунальні підприємства 🧑‍🏭"], prefix="/utility_company")
 

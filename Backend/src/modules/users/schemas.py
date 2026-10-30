@@ -27,6 +27,13 @@ class UserRegister(BaseModel):
     password: Annotated[str, MinLen(8), MaxLen(64)]
 
 
+class UserResponse(BaseModel):
+    user_id: int
+    email: EmailStr
+    name: str
+    surname: str
+
+
 class UserShowAll(BaseModel):
     user_id: int
     name: str

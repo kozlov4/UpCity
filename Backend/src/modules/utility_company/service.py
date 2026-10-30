@@ -1,36 +1,41 @@
 from typing import Literal
 
-from core import UtilityCompany
 from fastapi import HTTPException, status
 from hashing import Hash
-from schemas.utility_company_schemas import AddUtilityCompany, UtilityCompanyUpdate
-from sqlalchemy import asc, desc
-from sqlalchemy.orm import Session
+from sqlalchemy import asc, desc, select
+from sqlalchemy.ext.asyncio import AsyncSession
+from src.modules.utility_company.models import UtilityCompany
+
+from .schemas import AddUtilityCompany, UtilityCompanyUpdate
 
 
-def get_all(
+async def get_all(
     current_user: dict,
-    db: Session,
+    db: AsyncSession,
     sort_by_rating: Literal["За зростанням", "За спаданням"] | None,
 ):
-    if current_user["role"] != "admin" and current_user["role"] != "user":
+    if current_user["role"] not in {"admin", "user"}:
         raise HTTPException(status_code=403, detail="Недостатньо прав")
-    query = db.query(UtilityCompany)
+
+    query = select(UtilityCompany)
 
     if sort_by_rating == "За зростанням":
         query = query.order_by(asc(UtilityCompany.rating))
     elif sort_by_rating == "За спаданням":
         query = query.order_by(desc(UtilityCompany.rating))
 
-    return query.all()
+    result = await db.execute(query)
+    return result.scalars().all()
 
 
-def get_one(id, db: Session, current_user: dict):
+async def get_one(id: int, db: AsyncSession, current_user: dict):
     if current_user["role"] != "admin":
         raise HTTPException(status_code=403, detail="Недостатньо прав")
-    company = (
-        db.query(UtilityCompany).filter(UtilityCompany.ut_company_id == id).first()
-    )
+
+    query = select(UtilityCompany).where(UtilityCompany.ut_company_id == id)
+    result = await db.execute(query)
+    company = result.scalars().first()
+
     if not company:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -39,12 +44,16 @@ def get_one(id, db: Session, current_user: dict):
     return company
 
 
-def create_company(db: Session, request: AddUtilityCompany, current_user: dict):
+async def create_company(
+    db: AsyncSession, request: AddUtilityCompany, current_user: dict
+):
     if current_user["role"] != "admin":
         raise HTTPException(status_code=403, detail="Недостатньо прав")
-    existing_company = (
-        db.query(UtilityCompany).filter(UtilityCompany.email == request.email).first()
-    )
+
+    query = select(UtilityCompany).where(UtilityCompany.email == request.email)
+    result = await db.execute(query)
+    existing_company = result.scalars().first()
+
     if existing_company:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -59,30 +68,33 @@ def create_company(db: Session, request: AddUtilityCompany, current_user: dict):
         password=Hash.bcrypt(request.password),
     )
     db.add(new_company)
-    db.commit()
-    db.refresh(new_company)
+    await db.commit()
+    await db.refresh(new_company)
     return new_company
 
 
-def update(id, request: UtilityCompanyUpdate, db: Session, current_user: dict):
+async def update(
+    id: int, request: UtilityCompanyUpdate, db: AsyncSession, current_user: dict
+):
     if current_user["role"] != "admin":
         raise HTTPException(status_code=403, detail="Недостатньо прав")
-    company = (
-        db.query(UtilityCompany).filter(UtilityCompany.ut_company_id == id).first()
-    )
+
+    query = select(UtilityCompany).where(UtilityCompany.ut_company_id == id)
+    result = await db.execute(query)
+    company = result.scalars().first()
+
     if not company:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Компанію за id = {id} не знайдено",
         )
 
-    existing_company = (
-        db.query(UtilityCompany)
-        .filter(
-            UtilityCompany.email == request.email, UtilityCompany.ut_company_id != id
-        )
-        .first()
+    email_query = select(UtilityCompany).where(
+        UtilityCompany.email == request.email, UtilityCompany.ut_company_id != id
     )
+    email_result = await db.execute(email_query)
+    existing_company = email_result.scalars().first()
+
     if existing_company:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -93,22 +105,23 @@ def update(id, request: UtilityCompanyUpdate, db: Session, current_user: dict):
     company.address = request.address
     company.phone = request.phone
     company.email = request.email
-    db.commit()
-    db.refresh(company)
+    await db.commit()
+    await db.refresh(company)
     return company
 
 
-def destroy(id, db: Session, current_user: dict):
+async def destroy(id: int, db: AsyncSession, current_user: dict):
     if current_user["role"] != "admin":
         raise HTTPException(status_code=403, detail="Недостатньо прав")
-    company = (
-        db.query(UtilityCompany)
-        .filter(UtilityCompany.ut_company_id == id)
-        .delete(synchronize_session=False)
-    )
-    db.commit()
+
+    query = select(UtilityCompany).where(UtilityCompany.ut_company_id == id)
+    result = await db.execute(query)
+    company = result.scalars().first()
+
     if not company:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=f"КП з id = {id} не знайдено"
         )
-    return
+
+    await db.delete(company)
+    await db.commit()

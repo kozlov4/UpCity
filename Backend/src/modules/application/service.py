@@ -1,123 +1,133 @@
 import asyncio
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from typing import Literal
 
-import requests
-from core import Application, Image, Report, User, UtilityCompany
+import httpx
 from fastapi import HTTPException, UploadFile
 from repository.email_utils import send_email
 from repository.image_rep import upload
 from repository.sorting_rep import sorting_user_applications
-from sqlalchemy import desc, func
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import desc, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
+from src.core.models import Application, Report, User, UtilityCompany
 
 
-def get_all(
-    db: Session,
+async def get_all(
+    db: AsyncSession,
     sort_by_name: Literal["А-Я", "Я-А"] | None,
     sort_by_date: Literal["За зростанням", "За спаданням"] | None,
     sort_by_status: (
         Literal["В роботі", "Виконано", "Не розглянута", "Відхилено"] | None
     ),
 ):
-
-    query = db.query(Application)
-
-    query = sorting_user_applications(
-        query=query,
-        sort_by_name=sort_by_name,
-        sort_by_date=sort_by_date,
-        sort_by_status=sort_by_status,
+    query = select(Application).options(
+        joinedload(Application.image), joinedload(Application.utility_company)
     )
+    query = sorting_user_applications(query, sort_by_name, sort_by_date, sort_by_status)
+    query = query.order_by(desc(Application.application_date))
 
-    applications = query.order_by(desc(Application.application_date)).all()
-    return applications
+    result = await db.execute(query)
+    return result.scalars().all()
 
 
-def get_by_id(app_id: int, db: Session):
-    application = (
-        db.query(Application)
-        .options(joinedload(Application.image), joinedload(Application.utility_company))
-        .filter(Application.application_id == app_id)
-        .first()
+async def get_by_id(app_id: int, db: AsyncSession):
+    query = (
+        select(Application)
+        .options(
+            joinedload(Application.image),
+            joinedload(Application.utility_company),
+            joinedload(Application.user),
+        )
+        .where(Application.application_id == app_id)
     )
+    result = await db.execute(query)
+    application = result.scalars().first()
 
     if not application:
         raise HTTPException(status_code=404, detail="Заявку не знайдено")
-
     return application
 
 
-def get_all_by_user(
-    db: Session,
+async def get_all_by_user(
+    db: AsyncSession,
     current_user: dict,
-    sort_by_name: Literal["А-Я", "Я-А"] | None,
-    sort_by_date: Literal["За зростанням", "За спаданням"] | None,
-    sort_by_status: Literal["В роботі", "Виконано", "Не розглянута" "Відхилено"] | None,
+    sort_by_name: str | None,
+    sort_by_date: str | None,
+    sort_by_status: str | None,
 ):
     if current_user["role"] not in ["user", "company"]:
         raise HTTPException(status_code=403, detail="Недостатньо прав")
 
     user_id = current_user.get("sub")
-
     if not user_id:
         raise HTTPException(
             status_code=401, detail="Не вдалося витягти ідентифікатор користувача"
         )
 
-    query = db.query(Application)
+    query = select(Application).options(
+        joinedload(Application.image), joinedload(Application.utility_company)
+    )
+    query = sorting_user_applications(query, sort_by_name, sort_by_date, sort_by_status)
 
     if current_user["role"] == "company":
-        query = sorting_user_applications(
-            query=query,
-            sort_by_name=sort_by_name,
-            sort_by_date=sort_by_date,
-            sort_by_status=sort_by_status,
-        )
-        applications = query.filter(Application.ut_company_id == user_id).order_by(
-            desc(Application.application_date)
-        )
-    else:  # role == "user"
-        query = sorting_user_applications(
-            query=query,
-            sort_by_name=sort_by_name,
-            sort_by_date=sort_by_date,
-            sort_by_status=sort_by_status,
-        )
+        query = query.where(Application.ut_company_id == int(user_id))
+    else:
+        query = query.where(Application.user_id == int(user_id))
 
-        applications = query.filter(Application.user_id == user_id).order_by(
-            desc(Application.application_date)
-        )
-
-    return applications
+    query = query.order_by(desc(Application.application_date))
+    result = await db.execute(query)
+    return result.scalars().all()
 
 
-def create_app(
+async def geocode_address(address: str):
+    url = "https://nominatim.openstreetmap.org/search"
+    params = {"q": address, "format": "json"}
+    headers = {"User-Agent": "UpCityApp/1.0 (contact@example.com)"}
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                url, params=params, headers=headers, timeout=10.0
+            )
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=502, detail=f"Geocoding request failed: {e!s}")
+
+    if response.status_code != 200:
+        raise HTTPException(
+            status_code=502, detail=f"Geocoding error: {response.status_code}"
+        )
+
+    try:
+        data = response.json()
+    except Exception:
+        raise HTTPException(status_code=502, detail="Geocoding JSON error")
+
+    if data:
+        return float(data[0]["lat"]), float(data[0]["lon"])
+
+    raise HTTPException(
+        status_code=400, detail="Адресу не знайдено. Перевірте правильність написання."
+    )
+
+
+async def create_app(
     name: str,
     address: str,
     description: str,
     company_name: str,
     photo: UploadFile,
-    db: Session,
+    db: AsyncSession,
     current_user: dict,
 ):
-
-    if not name or not name.strip():
-        raise HTTPException(status_code=400, detail="Назва не може бути порожньою")
     if not (3 <= len(name.strip()) <= 60):
         raise HTTPException(
-            status_code=400, detail="Назва повинна містити від 3 до 100 символів"
+            status_code=400, detail="Назва повинна містити від 3 до 60 символів"
         )
-
-    if not address or not address.strip():
-        raise HTTPException(status_code=400, detail="Адреса не може бути порожньою")
     if not (8 <= len(address.strip()) <= 100):
         raise HTTPException(
-            status_code=400, detail="Адреса повинна містити від 5 до 200 символів"
+            status_code=400, detail="Адреса повинна містити від 8 до 100 символів"
         )
-
-    if not description or not description.strip():
-        raise HTTPException(status_code=400, detail="Опис не може бути порожнім")
     if not (10 <= len(description.strip()) <= 1000):
         raise HTTPException(
             status_code=400, detail="Опис повинен містити від 10 до 1000 символів"
@@ -127,17 +137,15 @@ def create_app(
         raise HTTPException(status_code=403, detail="Недостатньо прав")
 
     user_id = current_user.get("sub")
-    if not user_id:
-        raise HTTPException(
-            status_code=401, detail="Не вдалося витягти ідентифікатор користувача"
-        )
 
-    user = (
-        db.query(User)
-        .filter(User.user_id == user_id)
-        .outerjoin(User.subscription)
-        .first()
+    user_query = (
+        select(User)
+        .options(joinedload(User.subscription))
+        .where(User.user_id == int(user_id))
     )
+    result = await db.execute(user_query)
+    user = result.scalars().first()
+
     if not user:
         raise HTTPException(status_code=404, detail="Користувач не знайдений")
 
@@ -148,37 +156,38 @@ def create_app(
         and user.subscription.start_date <= today <= user.subscription.end_date
     )
 
-    applications_today = (
-        db.query(Application)
-        .filter(
-            Application.user_id == user_id,
-            func.date(Application.application_date) == today,
-        )
-        .count()
+    apps_today_query = select(func.count(Application.application_id)).where(
+        Application.user_id == int(user_id),
+        func.date(Application.application_date) == today,
     )
+    result = await db.execute(apps_today_query)
+    applications_today = result.scalar() or 0
 
     if not has_active_subscription and applications_today >= 3:
         raise HTTPException(
-            status_code=429,
-            detail="Ви досягли ліміту заявок на сьогодні. Оформіть підписку для необмеженого доступу.",
+            status_code=429, detail="Ви досягли ліміту заявок на сьогодні."
         )
 
-    company = (
-        db.query(UtilityCompany).filter(UtilityCompany.name == company_name).first()
-    )
+    comp_query = select(UtilityCompany).where(UtilityCompany.name == company_name)
+    result = await db.execute(comp_query)
+    company = result.scalars().first()
+
     if not company:
         raise HTTPException(status_code=404, detail="Компанія не знайдена")
 
-    lat, lon = geocode_address(address)
-    upload_data = upload(photo)
+    lat, lon = await geocode_address(address)
+
+    upload_data = await asyncio.to_thread(upload, photo)
     image_id = upload_data["image_id"]
 
-    max_number = (
-        db.query(Application.application_number)
-        .order_by(Application.application_number.desc())
-        .first()
+    num_query = (
+        select(Application.application_number)
+        .order_by(desc(Application.application_number))
+        .limit(1)
     )
-    new_number = (max_number[0] + 1) if max_number else 1
+    result = await db.execute(num_query)
+    max_number = result.scalar()
+    new_number = (max_number + 1) if max_number else 1
 
     application = Application(
         name=name,
@@ -188,15 +197,15 @@ def create_app(
         latitude=lat,
         status="Не розглянута",
         application_number=new_number,
-        user_id=user_id,
+        user_id=int(user_id),
         ut_company_id=company.ut_company_id,
         img_id=image_id,
-        report_id=None,  # не прив'язуємо репорт
+        report_id=None,
     )
 
     db.add(application)
-    db.commit()
-    db.refresh(application)
+    await db.commit()
+    await db.refresh(application)
 
     return {
         "message": "Заявку успішно створено",
@@ -204,146 +213,110 @@ def create_app(
     }
 
 
-def complete_app(
+async def complete_app(
     app_id: int,
-    rating: int,
+    rating: int | None,
     status: str,
-    image: UploadFile,
-    db: Session,
+    image: UploadFile | None,
+    db: AsyncSession,
     current_user: dict,
 ):
     if current_user["role"] != "company":
         raise HTTPException(
             status_code=403, detail="Тільки компанія може завершити заявку"
         )
-
-    application = (
-        db.query(Application).filter(Application.application_id == app_id).first()
-    )
-    if not application:
-        raise HTTPException(status_code=404, detail="Заявку не знайдено")
-
     if status not in ["Виконано", "Відхилено"]:
         raise HTTPException(status_code=400, detail="Некоректний статус")
 
+    app_query = select(Application).where(Application.application_id == app_id)
+    result = await db.execute(app_query)
+    application = result.scalars().first()
+
+    if not application:
+        raise HTTPException(status_code=404, detail="Заявку не знайдено")
+
     image_id = None
     if image and image.filename:
-        uploaded_image = upload(image)
+        uploaded_image = await asyncio.to_thread(upload, image)
         image_id = uploaded_image["image_id"]
 
     if application.report_id:
-        report = (
-            db.query(Report).filter(Report.report_id == application.report_id).first()
-        )
+        rep_query = select(Report).where(Report.report_id == application.report_id)
+        res = await db.execute(rep_query)
+        report = res.scalars().first()
         if not report:
-            raise HTTPException(status_code=500, detail="Не знайдено звіт для заявки")
+            raise HTTPException(status_code=500, detail="Не знайдено звіт")
 
         if image_id:
             report.image_id = image_id
-        report.execution_date = datetime.utcnow()
-        db.commit()
-        db.refresh(report)
+        report.execution_date = datetime.now(UTC)
+        await db.commit()
+        await db.refresh(report)
     else:
-        report = Report(image_id=image_id, execution_date=datetime.utcnow())
+        report = Report(image_id=image_id, execution_date=datetime.now(UTC))
         db.add(report)
-        db.flush()
-
+        await db.flush()
         application.report_id = report.report_id
-        db.commit()
-        db.refresh(report)
+        await db.commit()
+        await db.refresh(report)
 
     application.status = status
     if rating:
         application.user_rating = rating
-    db.commit()
-    db.refresh(application)
+    await db.commit()
+    await db.refresh(application)
 
     if rating:
-        user = db.query(User).filter(User.user_id == application.user_id).first()
+        user_query = select(User).where(User.user_id == application.user_id)
+        res = await db.execute(user_query)
+        user = res.scalars().first()
         if user:
-            total_ratings = (
-                db.query(func.sum(Application.user_rating))
-                .filter(
-                    Application.user_id == user.user_id,
-                    Application.user_rating.isnot(None),
-                )
-                .scalar()
-                or 0
+            r_query = select(
+                func.sum(Application.user_rating),
+                func.count(Application.application_id),
+            ).where(
+                Application.user_id == user.user_id,
+                Application.user_rating.is_not(None),
             )
+            r_res = await db.execute(r_query)
+            total_r, count_r = r_res.first()
+            if count_r:
+                user.rating = round(total_r / count_r, 2)
+                await db.commit()
 
-            rating_count = (
-                db.query(func.count(Application.application_id))
-                .filter(
-                    Application.user_id == user.user_id,
-                    Application.user_rating.isnot(None),
-                )
-                .scalar()
-                or 1
-            )
-
-            user.rating = round(total_ratings / rating_count, 2)
-            db.commit()
-
-    company_id = application.ut_company_id
-    if company_id:
-        total_applications = (
-            db.query(func.count(Application.application_id))
-            .filter(Application.ut_company_id == company_id)
-            .scalar()
-            or 1
+    if application.ut_company_id:
+        c_query = select(func.count(Application.application_id)).where(
+            Application.ut_company_id == application.ut_company_id
         )
+        t_res = await db.execute(c_query)
+        total_apps = t_res.scalar() or 1
 
-        completed_applications = (
-            db.query(func.count(Application.application_id))
-            .filter(
-                Application.ut_company_id == company_id,
-                Application.status == "Виконано",
-            )
-            .scalar()
-            or 0
+        c_comp_query = select(func.count(Application.application_id)).where(
+            Application.ut_company_id == application.ut_company_id,
+            Application.status == "Виконано",
         )
+        c_res = await db.execute(c_comp_query)
+        comp_apps = c_res.scalar() or 0
 
-        company = (
-            db.query(UtilityCompany)
-            .filter(UtilityCompany.ut_company_id == company_id)
-            .first()
+        co_query = select(UtilityCompany).where(
+            UtilityCompany.ut_company_id == application.ut_company_id
         )
+        co_res = await db.execute(co_query)
+        company = co_res.scalars().first()
         if company:
-            company.rating = round((completed_applications / total_applications) * 100)
-            db.commit()
-
-    main_image = None
-    if application.img_id:
-        img_obj = db.query(Image).filter(Image.image_id == application.img_id).first()
-        if img_obj:
-            main_image = {"image_url": img_obj.image_url}
-
-    report_out = None
-    if report and report.image_id:
-        report_img_obj = (
-            db.query(Image).filter(Image.image_id == report.image_id).first()
-        )
-        report_out = {
-            "report_id": report.report_id,
-            "execution_date": report.execution_date,
-            "image": (
-                {"image_url": report_img_obj.image_url} if report_img_obj else None
-            ),
-        }
+            company.rating = round((comp_apps / total_apps) * 100)
+            await db.commit()
 
     if status == "Виконано":
-        user = db.query(User).filter(User.user_id == application.user_id).first()
+        user_q = select(User).where(User.user_id == application.user_id)
+        u_res = await db.execute(user_q)
+        user = u_res.scalars().first()
         if user and user.email:
-            subject = f"✅ Виконано: {application.name or 'Ваша заявка'}"
-
-            content = (
-                f"Шановний(а) {user.full_name if 'full_name' in user.__dict__ and user.full_name else 'користувачу'},\n\n"
-                f"Ми раді повідомити, що ваша заявка «{application.name}» (№{application.application_id}) була успішно виконана компанією.\n\n"
-                f"Дякуємо за довіру до нашого сервісу!\n\n"
-                f"З найкращими побажаннями,\n"
-                f"Команда підтримки"
+            name_str = (
+                getattr(user, "full_name", "користувачу") or user.name or "користувачу"
             )
-
+            subject = f"✅ Виконано: {application.name}"
+            content = f"Шановний(а) {name_str},\n\nВаша заявка «{application.name}» (№{application.application_id}) була успішно виконана.\n"
             asyncio.create_task(send_email(user.email, subject, content))
 
     return {
@@ -351,101 +324,48 @@ def complete_app(
         "application": {
             "application_id": application.application_id,
             "status": application.status,
-            "image": main_image,
-            "report": report_out,
         },
     }
 
 
-def geocode_address(address: str):
-    url = "https://nominatim.openstreetmap.org/search"
-    params = {"q": address, "format": "json"}
-    headers = {"User-Agent": "UpCityApp/1.0 (contact@example.com)"}
-
-    try:
-        response = requests.get(url, params=params, headers=headers, timeout=10)
-    except requests.RequestException as e:
-        raise HTTPException(
-            status_code=502, detail=f"Geocoding request failed: {str(e)}"
-        )
-
-    if response.status_code != 200:
-        raise HTTPException(
-            status_code=502,
-            detail=f"Geocoding error: {response.status_code} - {response.text}",
-        )
-
-    try:
-        data = response.json()
-    except Exception as e:
-        raise HTTPException(
-            status_code=502,
-            detail=f"Geocoding JSON error: {str(e)}. Response was: {response.text}",
-        )
-
-    if data:
-        return float(data[0]["lat"]), float(data[0]["lon"])
-
-    # Якщо адреса не знайдена
-    raise HTTPException(
-        status_code=400, detail="Адресу не знайдено. Перевірте правильність написання."
-    )
-
-
-def confirm_app(app_id: int, status: str, current_user: dict, db: Session):
+async def confirm_app(app_id: int, status: str, current_user: dict, db: AsyncSession):
     if current_user["role"] not in ["company"]:
         raise HTTPException(status_code=403, detail="Недостатньо прав")
+    if status != "В роботі":
+        raise HTTPException(status_code=400, detail="Некоректний статус")
 
-    application = (
-        db.query(Application).filter(Application.application_id == app_id).first()
-    )
+    query = select(Application).where(Application.application_id == app_id)
+    res = await db.execute(query)
+    application = res.scalars().first()
+
     if not application:
         raise HTTPException(status_code=404, detail="Заявку не знайдено")
 
-    if status not in ["В роботі"]:
-        raise HTTPException(status_code=400, detail="Некоректний статус")
-
     application.status = status
-    db.commit()
-    db.refresh(application)
-
-    return {
-        "message": "Заявку взято в роботу",
-        "application": {
-            "application_id": application.application_id,
-            "status": application.status,
-        },
-    }
+    await db.commit()
+    await db.refresh(application)
+    return {"message": "Заявку взято в роботу"}
 
 
-def destroy_app(app_id: int, current_user: dict, db: Session):
+async def destroy_app(app_id: int, current_user: dict, db: AsyncSession):
     if current_user["role"] != "user":
         raise HTTPException(status_code=403, detail="Недостатньо прав")
 
-    try:
-        user_id = int(current_user.get("sub"))
-    except (TypeError, ValueError):
-        raise HTTPException(
-            status_code=401, detail="Невірний ідентифікатор користувача"
-        )
-
-    application = (
-        db.query(Application).filter(Application.application_id == app_id).first()
-    )
+    user_id = int(current_user.get("sub"))
+    query = select(Application).where(Application.application_id == app_id)
+    res = await db.execute(query)
+    application = res.scalars().first()
 
     if not application:
         raise HTTPException(status_code=404, detail="Заявку не знайдено")
-
     if application.user_id != user_id:
         raise HTTPException(status_code=403, detail="Ви не можете видалити чужу заявку")
-
     if application.status in ["В роботі", "Виконано", "Відхилено"]:
         raise HTTPException(
             status_code=400,
             detail=f"Неможливо видалити заявку зі статусом «{application.status}»",
         )
 
-    db.delete(application)
-    db.commit()
-
+    await db.delete(application)
+    await db.commit()
     return {"message": "Успішне видалення"}

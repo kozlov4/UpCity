@@ -1,20 +1,22 @@
-from typing import Literal, Optional
+from typing import Annotated, Literal, Optional
 
-from core import get_db
 from fastapi import APIRouter, Depends, File, Form, Query, UploadFile, status
 from modules.auth.oauth2 import get_current_user
-from repository import application_rep
-from schemas.application_schemas import ApplicationReview, ShowApp
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from src.core.db_helper import db_helper
+
+from . import service
+from .schemas import ApplicationReview, ShowApp
 
 router = APIRouter(tags=["Заявки ⚠️"], prefix="/application")
+SessionDep = Annotated[AsyncSession, Depends(db_helper.session_dependency)]
 
 
 @router.get("/", response_model=list[ShowApp], status_code=status.HTTP_200_OK)
-def get_applications_for_all_users(
-    db: Session = Depends(get_db),
+async def get_applications_for_all_users(
+    db: SessionDep,
     sort_by_name: Literal["А-Я", "Я-А"] | None = Query(
-        None, description="Сортування за алфавітом по імені"
+        None, description="Сортування за алфавітом"
     ),
     sort_by_date: Literal["За зростанням", "За спаданням"] | None = Query(
         None, description="Сортування за датою"
@@ -23,7 +25,7 @@ def get_applications_for_all_users(
         Literal["В роботі", "Виконано", "Не розглянута", "Відхилено"] | None
     ) = Query(None, description="Фільтрація за статусом"),
 ):
-    return application_rep.get_all(
+    return await service.get_all(
         db=db,
         sort_by_name=sort_by_name,
         sort_by_date=sort_by_date,
@@ -34,11 +36,11 @@ def get_applications_for_all_users(
 @router.get(
     "/all_by_user/", response_model=list[ShowApp], status_code=status.HTTP_200_OK
 )
-def get_all_applications_by_user(
-    db: Session = Depends(get_db),
+async def get_all_applications_by_user(
+    db: SessionDep,
     current_user: dict = Depends(get_current_user),
     sort_by_name: Literal["А-Я", "Я-А"] | None = Query(
-        None, description="Сортування за алфавітом по імені"
+        None, description="Сортування за алфавітом"
     ),
     sort_by_date: Literal["За зростанням", "За спаданням"] | None = Query(
         None, description="Сортування за датою"
@@ -47,7 +49,7 @@ def get_all_applications_by_user(
         Literal["В роботі", "Виконано", "Не розглянута", "Відхилено"] | None
     ) = Query(None, description="Фільтрація за статусом"),
 ):
-    return application_rep.get_all_by_user(
+    return await service.get_all_by_user(
         db=db,
         current_user=current_user,
         sort_by_name=sort_by_name,
@@ -59,14 +61,8 @@ def get_all_applications_by_user(
 @router.get(
     "/{app_id}/", status_code=status.HTTP_200_OK, response_model=ApplicationReview
 )
-def application_review(
-    app_id: int,
-    db: Session = Depends(get_db),
-):
-    return application_rep.get_by_id(
-        app_id=app_id,
-        db=db,
-    )
+async def application_review(app_id: int, db: SessionDep):
+    return await service.get_by_id(app_id=app_id, db=db)
 
 
 @router.post("/create/")
@@ -76,10 +72,10 @@ async def create_application(
     description: str = Form(...),
     company_name: str = Form(...),
     photo: UploadFile = File(...),
-    db: Session = Depends(get_db),
+    db: SessionDep = Depends(),
     current_user: dict = Depends(get_current_user),
 ):
-    return application_rep.create_app(
+    return await service.create_app(
         name=name,
         address=address,
         description=description,
@@ -93,13 +89,13 @@ async def create_application(
 @router.put("/{app_id}/complete", status_code=200)
 async def complete_application(
     app_id: int,
-    rating: Optional[int] = Form(None),
     status: str = Form(...),
+    rating: Optional[int] = Form(None),
     image: Optional[UploadFile] = File(None),
-    db: Session = Depends(get_db),
+    db: SessionDep = Depends(),
     current_user: dict = Depends(get_current_user),
 ):
-    return application_rep.complete_app(
+    return await service.complete_app(
         app_id=app_id,
         rating=rating,
         status=status,
@@ -114,9 +110,9 @@ async def confirm_application(
     app_id: int,
     status: str,
     current_user: dict = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    db: SessionDep = Depends(),
 ):
-    return application_rep.confirm_app(
+    return await service.confirm_app(
         app_id=app_id, status=status, current_user=current_user, db=db
     )
 
@@ -125,6 +121,6 @@ async def confirm_application(
 async def delete_application(
     app_id: int,
     current_user: dict = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    db: SessionDep = Depends(),
 ):
-    return application_rep.destroy_app(app_id=app_id, current_user=current_user, db=db)
+    return await service.destroy_app(app_id=app_id, current_user=current_user, db=db)

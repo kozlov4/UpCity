@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from repository.email_utils import send_email
-from schemas import EmailRequest
+from src.modules.users.schemas import EmailRequest
 
 router = APIRouter(tags=["Повідомлення 📢"])
 

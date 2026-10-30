@@ -4,13 +4,12 @@ from fastapi.security import OAuth2PasswordBearer
 from src.modules.users.utils import decode_jwt
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/login")
-
 oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="api/v1/login", auto_error=False)
 
 
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
-) -> int:
+) -> dict:
     try:
         payload = decode_jwt(token)
 
@@ -27,7 +26,7 @@ async def get_current_user(
                 detail="The token does not contain a user ID",
             )
 
-        return int(user_id_str)
+        return payload
 
     except jwt.ExpiredSignatureError:
         raise HTTPException(
@@ -42,8 +41,7 @@ async def get_current_user(
 
 async def get_current_user_optional(
     token: str | None = Depends(oauth2_scheme_optional),
-) -> int | None:
+) -> dict | None:
     if not token:
         return None
-
     return await get_current_user(token)

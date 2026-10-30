@@ -3,8 +3,28 @@ from typing import Annotated, Optional
 
 from annotated_types import MaxLen, MinLen
 from pydantic import BaseModel, EmailStr
-from schemas.image_schemas import ImageOut
-from schemas.subscription_schemas import SubscriptionOut
+
+
+class ImageOut(BaseModel):
+    image_id: int
+    image_url: str
+
+    model_config = {"from_attributes": True}
+
+
+class SubscriptionOut(BaseModel):
+    subscription_id: Optional[int] = None
+    status: Optional[str] = None
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+
+    model_config = {"from_attributes": True}
+
+
+class BlockingOut(BaseModel):
+    reason: str
+
+    model_config = {"from_attributes": True}
 
 
 class BlockUser(BaseModel):
@@ -14,10 +34,6 @@ class BlockUser(BaseModel):
 
 class GoogleAuthRequest(BaseModel):
     id_token: str
-
-
-class BlockingOut(BaseModel):
-    reason: str
 
 
 class UserRegister(BaseModel):
@@ -60,19 +76,3 @@ class EmailRequest(BaseModel):
 
 class PaymentRequest(BaseModel):
     paymentToken: str
-
-
-class ImageOut(BaseModel):
-    image_id: int
-    image_url: str
-
-    model_config = {"from_attributes": True}
-
-
-class SubscriptionOut(BaseModel):
-    subscription_id: Optional[int] = None
-    status: Optional[str] = None
-    start_date: Optional[date] = None
-    end_date: Optional[date] = None
-
-    model_config = {"from_attributes": True}

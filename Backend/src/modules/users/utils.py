@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import bcrypt
 import jwt
@@ -11,9 +11,9 @@ def encode_jwt(
     algorithm: str = settings.algorithm,
     expire_minutes: int = settings.access_token_expire_minutes,
     expire_timedelta: timedelta | None = None,
-):
+) -> str:
     to_encode = payload.copy()
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     if expire_timedelta:
         expire = now + expire_timedelta
     else:
@@ -31,7 +31,7 @@ def decode_jwt(
     token: str | bytes,
     secret_key: str = settings.jwt_private_key,
     algorithm: str = settings.algorithm,
-):
+) -> dict:
     decoded = jwt.decode(
         token,
         secret_key,
@@ -40,11 +40,11 @@ def decode_jwt(
     return decoded
 
 
-def hash_password(password: str) -> bytes:
+def hash_password(password: str) -> str:
     salt = bcrypt.gensalt()
     pwd_bytes: bytes = password.encode()
-    return bcrypt.hashpw(pwd_bytes, salt)
+    return bcrypt.hashpw(pwd_bytes, salt).decode()
 
 
-def validate_password(password: str, hashed_password: bytes) -> bool:
-    return bcrypt.checkpw(password=password.encode(), hashed_password=hashed_password)
+def validate_password(password: str, hashed_password: str) -> bool:
+    return bcrypt.checkpw(password.encode(), hashed_password.encode())

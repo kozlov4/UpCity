@@ -1,23 +1,24 @@
-from core import get_db
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, status
 from fastapi.security import OAuth2PasswordRequestForm
-from repository import authentication_rep
-from schemas.utility_company_schemas import LoginAdminCompanyUser
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from src.core.db_helper import db_helper
+from src.modules.utility_company.schemas import LoginAdminCompanyUser
+
+from . import service
 
 router = APIRouter(
     tags=["Авторизація для | Користувача | Адміна | Кп | 🔓"], prefix="/login"
 )
+SessionDep = Annotated[AsyncSession, Depends(db_helper.session_dependency)]
 
 
 @router.post("/", status_code=status.HTTP_200_OK)
-def login(
-    request: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
+async def login(
+    request: Annotated[OAuth2PasswordRequestForm, Depends()], db: SessionDep
 ):
-
-    email = request.username  # Email —  username in form
-    password = request.password
-
-    login_data = LoginAdminCompanyUser(email=email, password=password)
-
-    return authentication_rep.login(db, login_data)
+    login_data = LoginAdminCompanyUser(
+        email=request.username, password=request.password
+    )
+    return await service.login(db, login_data)

@@ -1,15 +1,17 @@
+# Modules/Application/schemas.py
 from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel
-from schemas.image_schemas import ImageOut
-from schemas.utility_company_schemas import ShowUtilityCompanyID
+from src.modules.users.schemas import ImageOut
+from src.modules.utility_company.schemas import ShowUtilityCompanyID
 
 
 class ReportOut(BaseModel):
     report_id: int
     execution_date: datetime
     image: Optional[ImageOut] = None
+    model_config = {"from_attributes": True}
 
 
 class ShowApp(BaseModel):
@@ -21,9 +23,8 @@ class ShowApp(BaseModel):
     longitude: Optional[float] = None
     latitude: Optional[float] = None
     utility_company: ShowUtilityCompanyID
-    image: ImageOut
-    report: Optional[ReportOut]  # додано звіт
-
+    image: Optional[ImageOut] = None
+    report: Optional[ReportOut] = None
     model_config = {"from_attributes": True}
 
 
@@ -31,6 +32,7 @@ class UserOut(BaseModel):
     user_id: int
     name: str
     surname: str
+    model_config = {"from_attributes": True}
 
 
 class ApplicationReview(BaseModel):
@@ -45,10 +47,9 @@ class ApplicationReview(BaseModel):
     user_rating: Optional[float] = None
     longitude: Optional[float] = None
     latitude: Optional[float] = None
-    image: ImageOut
-    user: Optional[UserOut]
-    report: Optional[ReportOut]  # додано звіт
-
+    image: Optional[ImageOut] = None
+    user: Optional[UserOut] = None
+    report: Optional[ReportOut] = None
     model_config = {"from_attributes": True}
 
 
@@ -57,5 +58,4 @@ class CreateApp(BaseModel):
     application_date: datetime
     application_number: int
     utility_company: ShowUtilityCompanyID
-
     model_config = {"from_attributes": True}

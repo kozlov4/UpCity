@@ -1,7 +1,7 @@
 from core import Admin, User, UtilityCompany
 from fastapi import HTTPException, status
-from hashing import Hash
-from jwt_handler import create_access_token
+from modules.auth.hashing import Hash
+from modules.auth.jwt_handler import create_access_token
 from schemas.utility_company_schemas import LoginAdminCompanyUser
 from sqlalchemy.orm import Session
 

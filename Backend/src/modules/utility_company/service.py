@@ -1,7 +1,7 @@
 from typing import Literal
 
 from fastapi import HTTPException, status
-from hashing import Hash
+from modules.auth.hashing import Hash
 from sqlalchemy import asc, desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.modules.utility_company.models import UtilityCompany

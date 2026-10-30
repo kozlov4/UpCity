@@ -1,7 +1,7 @@
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Path, Query, status
-from oauth2 import get_current_user
+from modules.auth.oauth2 import get_current_user
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.db_helper import db_helper
 

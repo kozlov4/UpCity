@@ -2,7 +2,7 @@ from typing import Literal, Optional
 
 from core import get_db
 from fastapi import APIRouter, Depends, File, Form, Query, UploadFile, status
-from oauth2 import get_current_user
+from modules.auth.oauth2 import get_current_user
 from repository import application_rep
 from schemas.application_schemas import ApplicationReview, ShowApp
 from sqlalchemy.orm import Session

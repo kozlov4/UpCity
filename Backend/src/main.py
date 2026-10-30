@@ -1,4 +1,3 @@
-from api import application, authentication, notification, user, utility_company
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -20,9 +19,3 @@ app.add_middleware(
 app.mount(
     "/images", StaticFiles(directory="/var/www/myapp/uploads/images"), name="images"
 )
-
-app.include_router(utility_company.router)
-app.include_router(user.router)
-app.include_router(authentication.router)
-app.include_router(application.router)
-app.include_router(notification.router)
